@@ -3,7 +3,9 @@ import { llm } from "../../config/llm.js";
 import { enqueuePdfJob } from "../../producers/pdf.producer.js";
 import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { TaskType } from "@google/generative-ai";
+import { registerPdfQueueEventHandlers } from "../../events/pdf.events.js";
 
+registerPdfQueueEventHandlers();
 export class ChatContoller {
   public static instance: ChatContoller;
 
@@ -50,7 +52,7 @@ export class ChatContoller {
         {
           url: "http://localhost:6333",
           collectionName: "langchainjs-testing",
-        },
+        }
       );
 
       const ret = await vectorStore.asRetriever({ k: 2 });
@@ -79,7 +81,7 @@ export class ChatContoller {
       } else if (Array.isArray(aiMsg?.content)) {
         answerText = aiMsg.content
           .map((c: any) =>
-            typeof c === "string" ? c : c?.text || c?.content || "",
+            typeof c === "string" ? c : c?.text || c?.content || ""
           )
           .filter(Boolean)
           .join("\n");

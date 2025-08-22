@@ -1,12 +1,17 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "./dist/index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon index.js",
-    "dev:worker": "nodemon worker.js"
+    "clean": "rm -rf dist",
+    "start": "node ./dist/index.js",
+    "build": "tsc -p tsconfig.json",
+    "dev": "nodemon ./src/index.ts",
+    "dev:worker": "nodemon worker.js",
+    "lint": "eslint --ext .js,.ts .",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "format": "prettier --ignore-path .gitignore --write \"**/*.+(js|ts|json)\""
   },
   "keywords": [],
   "author": "",
@@ -23,9 +28,27 @@
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "ioredis": "^5.7.0",
+    "jiti": "^2.5.1",
     "langchain": "^0.3.30",
     "multer": "^2.0.2",
     "nodemon": "^3.1.10",
-    "pdf-parse": "^1.1.1"
+    "pdf-parse": "^1.1.1",
+    "winston": "^3.17.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.33.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^24.3.0",
+    "@typescript-eslint/eslint-plugin": "^8.40.0",
+    "@typescript-eslint/parser": "^8.40.0",
+    "eslint": "^9.33.0",
+    "globals": "^16.3.0",
+    "prettier": "^3.6.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.40.0"
   }
 }

@@ -1,0 +1,16 @@
+{
+  "apps": [
+    {
+      "name": "message-queue",
+      "script": "dist/worker.js",
+      "merge_logs": true,
+      "log_file": ".logs/message/combined.outerr.log",
+      "out_file": ".logs/message/out.log",
+      "error_file": ".logs/message/err.log",
+      "log_date_format": "YYYY-MM-DD HH:mm:ss Z",
+      "instances": "1",
+      "exec_mode": "cluster",
+      "args": ["message-queue"]
+    }
+  ]
+}

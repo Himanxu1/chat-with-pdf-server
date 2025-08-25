@@ -1,17 +1,17 @@
 import winston from "winston";
 
-const { combine, timestamp, printf, colorize, errors, splat, json, align } =
+const { combine, timestamp, printf, colorize, errors, json, align } =
   winston.format;
 
-const isProd = process.env.NODE_ENV === "production";
+const isProd = process.env["NODE_ENV"] === "production";
 
 const consoleFormat = combine(
   colorize(),
   timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
   align(),
   printf((info) => {
-    const msg = info.stack || info.message;
-    return `${info.timestamp} ${info.level}]${msg}`;
+    const msg = info["stack"] || info.message;
+    return `${info["timestamp"]} ${info.level}]${msg}`;
   }),
 );
 

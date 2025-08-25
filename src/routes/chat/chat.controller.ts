@@ -1,75 +1,77 @@
 import { QdrantVectorStore } from "@langchain/qdrant";
 import { llm } from "../../config/llm.js";
 import { enqueuePdfJob } from "../../producers/pdf.producer.js";
-import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
-import { TaskType } from "@google/generative-ai";
+import { embeddings } from "../../config/embeddings.js";
 import { registerPdfQueueEventHandlers } from "../../events/pdf.events.js";
+import { env } from "../../config/env.js";
+import logger from "../../utils/logger.js";
+import type { Request, Response } from "express";
 
 registerPdfQueueEventHandlers();
-export class ChatContoller {
-  public static instance: ChatContoller;
+
+export class ChatController {
+  public static instance: ChatController;
 
   static getInstance() {
-    if (!ChatContoller.instance) {
-      ChatContoller.instance = new ChatContoller();
+    if (!ChatController.instance) {
+      ChatController.instance = new ChatController();
     }
-    return ChatContoller.instance;
+    return ChatController.instance;
   }
 
-  public uploadPdftoQueue = async (req: any, res: any) => {
+  public uploadPdftoQueue = async (req: Request, res: Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
       }
+
       const job = await enqueuePdfJob({
         filename: req.file.originalname,
         destination: req.file.destination,
         path: req.file.path,
       });
-      res.json({
+
+      logger.info(`PDF uploaded to queue: ${req.file.originalname}`);
+      return res.json({
         message: "File uploaded successfully",
         jobId: job.id,
-        file: req.file,
+        file: {
+          originalname: req.file.originalname,
+          size: req.file.size,
+        },
       });
     } catch (err: any) {
-      console.error("Error uploading PDF to queue:", err);
+      logger.error("Error uploading PDF to queue:", err);
       return res.status(500).json({ error: "Failed to upload PDF" });
     }
   };
 
-  public uploadChatToVector = async (req: any, res: any) => {
+  public uploadChatToVector = async (req: Request, res: Response) => {
     const { question } = req.body;
 
     try {
-      const embeddings = new GoogleGenerativeAIEmbeddings({
-        model: "text-embedding-004",
-        taskType: TaskType.RETRIEVAL_DOCUMENT,
-        title: "Document title",
-      });
-
       const vectorStore = await QdrantVectorStore.fromExistingCollection(
         embeddings,
         {
-          url: "http://localhost:6333",
-          collectionName: "langchainjs-testing",
-        }
+          url: env.QDRANT_URL,
+          collectionName: env.QDRANT_COLLECTION,
+        },
       );
 
       const ret = await vectorStore.asRetriever({ k: 2 });
       const result = await ret.invoke(question);
       const context = result.map((r: any) => r.pageContent).join("\n\n");
 
-      console.log(result, "----result---");
+      logger.info(
+        `Retrieved ${result.length} documents for question: ${question}`,
+      );
 
-      const SYSTEM_PROMPT = `You are a helpful assistant that answers questions based on the provided context.If the question is not related to the context reply with sorry`;
+      const SYSTEM_PROMPT = `You are a helpful assistant that answers questions based on the provided context. If the question is not related to the context, reply with "I'm sorry, I don't have enough information to answer that question."`;
 
       const aiMsg = await llm.invoke([
         ["system", SYSTEM_PROMPT],
-        ["human", question],
-        ["ai", context],
+        ["human", `Context: ${context}\n\nQuestion: ${question}`],
       ]);
-
-      console.log(aiMsg.content, "---aimsg---");
 
       // Normalize content to a plain string
       let answerText = "";
@@ -81,7 +83,7 @@ export class ChatContoller {
       } else if (Array.isArray(aiMsg?.content)) {
         answerText = aiMsg.content
           .map((c: any) =>
-            typeof c === "string" ? c : c?.text || c?.content || ""
+            typeof c === "string" ? c : c?.text || c?.content || "",
           )
           .filter(Boolean)
           .join("\n");
@@ -89,15 +91,15 @@ export class ChatContoller {
         answerText = JSON.stringify(aiMsg?.content || aiMsg || "", null, 2);
       }
 
-      console.log(answerText, "---aimsg---");
+      logger.info(`Generated answer for question: ${question}`);
       return res.json({ answer: answerText });
     } catch (error) {
-      console.error("Error in /chat:", error);
+      logger.error("Error in /chat:", error);
       return res.status(500).json({ error: "Internal server error" });
     }
   };
 }
 
-const ChatControllerService = ChatContoller.getInstance();
+const ChatControllerService = ChatController.getInstance();
 
 export default ChatControllerService;

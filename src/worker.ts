@@ -1,51 +1,13 @@
-import { Worker } from "bullmq";
-import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
-import { CharacterTextSplitter } from "@langchain/textsplitters";
-import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
-import { TaskType } from "@google/generative-ai";
-import { QdrantVectorStore } from "@langchain/qdrant";
+// This file is deprecated - use src/workers/pdf.worker.ts instead
+// Keeping for backward compatibility but the worker is now started in src/index.ts
 
-const worker = new Worker(
-  "pdf-queue",
-  async (job) => {
-    const data = JSON.parse(job.data);
-    const loader = new PDFLoader(data.path);
-    const docs = await loader.load();
+import { pdfWorker } from "./workers/pdf.worker.js";
 
-    const textSplitter = new CharacterTextSplitter({
-      chunkSize: 100,
-      chunkOverlap: 0,
-    });
+console.log("PDF Worker started");
 
-    const embeddings = new GoogleGenerativeAIEmbeddings({
-      model: "text-embedding-004",
-      taskType: TaskType.RETRIEVAL_DOCUMENT,
-      title: "Document title",
-    });
-
-    const vectorStore = await QdrantVectorStore.fromExistingCollection(
-      embeddings,
-      {
-        url: "http://localhost:6333",
-        collectionName: "langchainjs-testing",
-      },
-    );
-    await vectorStore.addDocuments(docs);
-
-    console.log(vectorStore);
-  },
-  {
-    connection: {
-      host: "localhost",
-      port: 6379,
-    },
-  },
-);
-
-worker.on("completed", (job) => {
-  console.log(`${job.id} has completed!`);
-});
-
-worker.on("failed", (job, err) => {
-  console.log(`${job?.id} has failed with ${err.message}`);
+// Keep the worker running
+process.on("SIGINT", async () => {
+  console.log("Shutting down worker...");
+  await pdfWorker.close();
+  process.exit(0);
 });

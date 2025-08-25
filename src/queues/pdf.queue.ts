@@ -1,4 +1,3 @@
-// src/queues/pdf.queue.ts
 import { Queue } from "bullmq";
 import type { PdfJobData, PdfJobResult } from "../jobs/pdf.types.js";
 import { queueOptions } from "../config/redis.js";

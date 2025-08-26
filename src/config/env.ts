@@ -7,10 +7,10 @@ const envSchema = z.object({
   PORT: z.string().transform(Number).default("3001"),
   DATABASE_URL: z
     .string()
-    .default("mysql://admnin:admin@localhost:3306/chatpdf"),
+    .default("mysql://admin:admin@localhost:3306/chatpdf"),
   REDIS_HOST: z.string().default("localhost"),
   REDIS_PORT: z.string().transform(Number).default("6379"),
-  GOOGLE_API_KEY: z.string().optional(),
+  GOOGLE_API_KEY: z.string().default("AIzaSyBmR0hm2mOSFvscjtrCeT_ftKOeJ2P6cAk"),
   QDRANT_URL: z.string().default("http://localhost:6333"),
   QDRANT_COLLECTION: z.string().default("langchainjs-testing"),
   UPLOAD_MAX_SIZE: z.string().transform(Number).default("10485760"),

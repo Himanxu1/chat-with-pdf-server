@@ -2,15 +2,17 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  OneToMany,
+  ManyToOne,
+  type Relation,
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
+  JoinColumn,
 } from "typeorm";
 import { Chat } from "./chat.js";
 
 @Entity()
-export class User {
+export class Message {
   @PrimaryGeneratedColumn("uuid")
   id: number;
 
@@ -24,37 +26,20 @@ export class User {
   deletedAt: Date;
 
   @Column({
-    name: "first_name",
-    type: "varchar",
-    length: 255,
-    unique: true,
+    name: "content",
+    type: "text",
     nullable: false,
   })
-  firstName: string;
+  content: string;
 
   @Column({
-    name: "last_name",
+    name: "chat_id",
     type: "varchar",
-    length: 255,
-  })
-  lastName: string;
-
-  @Column({
-    name: " is_active",
-    type: "boolean",
-    default: true,
-  })
-  isActive: boolean;
-
-  @Column({
-    name: "email",
-    type: "varchar",
-    length: 255,
-    unique: true,
     nullable: false,
   })
-  email: string;
+  chatId: string;
 
-  @OneToMany(() => Chat, (chat) => chat.user)
-  chats: Chat[];
+  @ManyToOne(() => Chat, (chat) => chat.messages)
+  @JoinColumn({ name: "chat_id", referencedColumnName: "id" })
+  chat: Relation<Chat>;
 }

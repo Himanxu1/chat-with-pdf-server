@@ -1,7 +1,7 @@
 import { QdrantVectorStore } from "@langchain/qdrant";
-import { llm } from "../../config/llm.js";
+import { llm, isLLMAvailable } from "../../config/llm.js";
 import { enqueuePdfJob } from "../../producers/pdf.producer.js";
-import { embeddings } from "../../config/embeddings.js";
+import { embeddings, isEmbeddingsAvailable } from "../../config/embeddings.js";
 import { registerPdfQueueEventHandlers } from "../../events/pdf.events.js";
 import { env } from "../../config/env.js";
 import logger from "../../utils/logger.js";
@@ -31,7 +31,7 @@ export class ChatController {
         path: req.file.path,
       });
 
-      logger.info(`PDF uploaded to queue: ${req.file.originalname}`);
+      logger.info(`PDF uploaded to queue: ${JSON.stringify(job)}`);
       return res.json({
         message: "File uploaded successfully",
         jobId: job.id,
@@ -50,12 +50,28 @@ export class ChatController {
     const { question } = req.body;
 
     try {
+      // Check if LLM is available
+      if (!isLLMAvailable()) {
+        return res.status(503).json({
+          error:
+            "AI service is not available. Please configure GOOGLE_API_KEY in your environment variables.",
+        });
+      }
+
+      // Check if embeddings are available
+      if (!isEmbeddingsAvailable()) {
+        return res.status(503).json({
+          error:
+            "Embeddings service is not available. Please configure GOOGLE_API_KEY in your environment variables.",
+        });
+      }
+
       const vectorStore = await QdrantVectorStore.fromExistingCollection(
-        embeddings,
+        embeddings!,
         {
           url: env.QDRANT_URL,
           collectionName: env.QDRANT_COLLECTION,
-        },
+        }
       );
 
       const ret = await vectorStore.asRetriever({ k: 2 });
@@ -63,12 +79,12 @@ export class ChatController {
       const context = result.map((r: any) => r.pageContent).join("\n\n");
 
       logger.info(
-        `Retrieved ${result.length} documents for question: ${question}`,
+        `Retrieved ${result.length} documents for question: ${question}`
       );
 
       const SYSTEM_PROMPT = `You are a helpful assistant that answers questions based on the provided context. If the question is not related to the context, reply with "I'm sorry, I don't have enough information to answer that question."`;
 
-      const aiMsg = await llm.invoke([
+      const aiMsg = await llm!.invoke([
         ["system", SYSTEM_PROMPT],
         ["human", `Context: ${context}\n\nQuestion: ${question}`],
       ]);
@@ -83,7 +99,7 @@ export class ChatController {
       } else if (Array.isArray(aiMsg?.content)) {
         answerText = aiMsg.content
           .map((c: any) =>
-            typeof c === "string" ? c : c?.text || c?.content || "",
+            typeof c === "string" ? c : c?.text || c?.content || ""
           )
           .filter(Boolean)
           .join("\n");

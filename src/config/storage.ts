@@ -24,6 +24,7 @@ const gcpStorage = multer.diskStorage({
 // Middleware to handle GCP upload after multer
 export const uploadToGCP = async (req: any, _res: any, next: any) => {
   logger.info("here");
+  logger.info(`${JSON.stringify(req)}`);
   if (!req.file) {
     return next();
   }

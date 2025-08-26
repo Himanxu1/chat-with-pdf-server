@@ -5,21 +5,33 @@ import {
   apiRateLimiter,
   uploadRateLimiter,
 } from "../../middleware/rateLimiter.js";
-import { uploadToGCP } from "../../config/storage.js";
+import multer from "multer";
+import path from "path";
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/");
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + path.extname(file.originalname)); // unique filename
+  },
+});
+
+const upload = multer({ storage });
 
 const router = Router();
 
 router.post(
-  "/chat",
+  "/",
   apiRateLimiter,
   validateRequest(chatSchema),
   ChatControllerService.uploadChatToVector
 );
 
 router.post(
-  "/pdf/upload",
+  "/pdf",
   uploadRateLimiter,
-  uploadToGCP,
+  upload.single("pdf"),
   ChatControllerService.uploadPdftoQueue
 );
 

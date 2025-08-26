@@ -1,14 +1,11 @@
-import { getDataSource, closeDataSource } from "./config/datasource.js";
-// import { env } from "../config/env.js";
+import { getDataSource, closeDataSource } from "./config/ormConfig.js";
 import logger from "../utils/logger.js";
 
 let dataSource: any = null;
 
 export async function initializeDatabase() {
   try {
-    dataSource = await getDataSource(
-      "mysql://admin:admin@localhost:3306/chatdb"
-    );
+    dataSource = await getDataSource();
     logger.info("Database connected successfully");
     return dataSource;
   } catch (error) {

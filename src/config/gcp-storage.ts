@@ -2,18 +2,30 @@ import { Storage } from "@google-cloud/storage";
 import { env } from "./env.js";
 import logger from "../utils/logger.js";
 
-import dotenv from "dotenv";
+// Check if GCP is properly configured
+const isGCPConfigured = Boolean(env.GCP_PROJECT_ID && env.GCP_STORAGE_BUCKET);
 
-dotenv.config({ path: "../../.env " });
+// Initialize Google Cloud Storage only if configured
+let storage: Storage | null = null;
+let bucket: any = null;
 
-// Initialize Google Cloud Storage
-const storage = new Storage({
-  projectId: env.GCP_PROJECT_ID!,
-  ...(env.GCP_KEY_FILE_PATH && { keyFilename: env.GCP_KEY_FILE_PATH }),
-});
-
-const bucketName = env.GCP_STORAGE_BUCKET!;
-const bucket = storage.bucket(bucketName);
+if (isGCPConfigured && env.GCP_PROJECT_ID && env.GCP_STORAGE_BUCKET) {
+  try {
+    storage = new Storage({
+      projectId: env.GCP_PROJECT_ID,
+      ...(env.GCP_KEY_FILE_PATH && { keyFilename: env.GCP_KEY_FILE_PATH }),
+    });
+    
+    bucket = storage.bucket(env.GCP_STORAGE_BUCKET);
+    logger.info(`GCP Storage initialized for bucket: ${env.GCP_STORAGE_BUCKET}`);
+  } catch (error) {
+    logger.error("Failed to initialize GCP Storage:", error);
+    storage = null;
+    bucket = null;
+  }
+} else {
+  logger.warn("GCP Storage not configured. Missing GCP_PROJECT_ID or GCP_STORAGE_BUCKET");
+}
 
 export interface UploadResult {
   filename: string;
@@ -24,6 +36,13 @@ export interface UploadResult {
 
 export class GCPStorageService {
   /**
+   * Check if GCP storage is available
+   */
+  static isAvailable(): boolean {
+    return isGCPConfigured && storage !== null && bucket !== null;
+  }
+
+  /**
    * Upload a file to GCP Cloud Storage
    */
   static async uploadFile(
@@ -31,6 +50,14 @@ export class GCPStorageService {
     destination: string,
     metadata?: Record<string, string>
   ): Promise<UploadResult> {
+    if (!this.isAvailable()) {
+      throw new Error("GCP Storage is not configured or available");
+    }
+
+    if (!env.GCP_STORAGE_BUCKET) {
+      throw new Error("GCP Storage bucket is not configured");
+    }
+
     try {
       const options = {
         destination,
@@ -41,7 +68,7 @@ export class GCPStorageService {
         resumable: false,
       };
 
-      const [file] = await bucket.upload(filePath, options);
+      const [file] = await bucket!.upload(filePath, options);
 
       // Make the file publicly readable (optional)
       await file.makePublic();
@@ -52,9 +79,9 @@ export class GCPStorageService {
 
       return {
         filename: destination,
-        url: `https://storage.googleapis.com/${bucketName}/${destination}`,
+        url: `https://storage.googleapis.com/${env.GCP_STORAGE_BUCKET}/${destination}`,
         size: parseInt(metadata_result.size?.toString() || "0"),
-        bucket: bucketName,
+        bucket: env.GCP_STORAGE_BUCKET,
       };
     } catch (error) {
       logger.error("Error uploading file to GCS:", error);
@@ -66,8 +93,12 @@ export class GCPStorageService {
    * Delete a file from GCP Cloud Storage
    */
   static async deleteFile(filename: string): Promise<void> {
+    if (!this.isAvailable()) {
+      throw new Error("GCP Storage is not configured or available");
+    }
+
     try {
-      await bucket.file(filename).delete();
+      await bucket!.file(filename).delete();
       logger.info(`File deleted from GCS: ${filename}`);
     } catch (error) {
       logger.error("Error deleting file from GCS:", error);
@@ -79,8 +110,12 @@ export class GCPStorageService {
    * Get file metadata from GCP Cloud Storage
    */
   static async getFileMetadata(filename: string) {
+    if (!this.isAvailable()) {
+      throw new Error("GCP Storage is not configured or available");
+    }
+
     try {
-      const [metadata] = await bucket.file(filename).getMetadata();
+      const [metadata] = await bucket!.file(filename).getMetadata();
       return metadata;
     } catch (error) {
       logger.error("Error getting file metadata from GCS:", error);
@@ -95,8 +130,12 @@ export class GCPStorageService {
     filename: string,
     expirationMinutes: number = 60
   ): Promise<string> {
+    if (!this.isAvailable()) {
+      throw new Error("GCP Storage is not configured or available");
+    }
+
     try {
-      const [url] = await bucket.file(filename).getSignedUrl({
+      const [url] = await bucket!.file(filename).getSignedUrl({
         version: "v4",
         action: "read",
         expires: Date.now() + expirationMinutes * 60 * 1000,

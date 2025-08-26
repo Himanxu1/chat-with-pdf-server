@@ -1,30 +1,28 @@
-// import path from "path";
 import { DataSource } from "typeorm";
-// import { fileURLToPath } from "url";
-import logger from "../../utils/logger.js";
-import { User } from "../entities/user.js";
+import path from "path";
+import { fileURLToPath } from "url";
+import dotenv from "dotenv";
 
-// Derive __dirname for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-let dataSource: DataSource | null = null;
+dotenv.config({ path: path.join(__dirname, "../../../.env") });
 
-export async function getDataSource(dbUrl: string): Promise<DataSource> {
-  logger.info(` Initializing TypeORM DataSource...${JSON.stringify(dbUrl)}`);
-  if (dataSource && dataSource.isInitialized) return dataSource;
+const config = {
+  dbPassword: process.env.DB_PASSWORD ?? "",
+  dbName: process.env.DB_NAME ?? "",
+  dbUser: process.env.DB_USER ?? "",
+  dbHost: process.env.DB_HOST ?? "",
+};
 
-  dataSource = new DataSource({
-    type: "mysql",
-    url: dbUrl,
-    synchronize: false,
-    logging: false,
-    entities: [User],
-    migrations: [],
-  });
-
-  await dataSource.initialize();
-  return dataSource;
-}
-
-export async function closeDataSource(): Promise<void> {
-  if (dataSource?.isInitialized) await dataSource.destroy();
-}
+export const dataSource: DataSource | null = new DataSource({
+  type: "mysql",
+  password: config.dbPassword,
+  database: config.dbName,
+  username: config.dbUser,
+  host: config.dbHost,
+  synchronize: false,
+  logging: false,
+  entities: [path.resolve(__dirname, "../entities/**/*.{js,ts}")],
+  migrations: [path.resolve(__dirname, "../migrations/**/*.{js,ts}")],
+});

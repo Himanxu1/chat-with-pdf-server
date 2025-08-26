@@ -1,10 +1,14 @@
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
-import { embeddings } from "../../../config/embeddings.js";
+import { embeddings, isEmbeddingsAvailable } from "../../../config/embeddings.js";
 
 export async function buildVectorStoreFromDocs(
   docs: { url: string; title: string; text: string }[],
 ) {
+  if (!isEmbeddingsAvailable()) {
+    throw new Error("Embeddings service is not available. Please configure GOOGLE_API_KEY in your environment variables.");
+  }
+
   const splitter = new RecursiveCharacterTextSplitter({
     chunkSize: 1200,
     chunkOverlap: 200,
@@ -21,6 +25,6 @@ export async function buildVectorStoreFromDocs(
     }
   }
 
-  const store = await MemoryVectorStore.fromDocuments(allDocs, embeddings);
+  const store = await MemoryVectorStore.fromDocuments(allDocs, embeddings!);
   return store;
 }

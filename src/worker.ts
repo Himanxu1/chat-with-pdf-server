@@ -1,13 +1,4 @@
-// This file is deprecated - use src/workers/pdf.worker.ts instead
-// Keeping for backward compatibility but the worker is now started in src/index.ts
+import "./workers/pdf.worker.js"; // This imports and initializes the worker
+import logger from "./utils/logger.js";
 
-import { pdfWorker } from "./workers/pdf.worker.js";
-
-console.log("PDF Worker started");
-
-// Keep the worker running
-process.on("SIGINT", async () => {
-  console.log("Shutting down worker...");
-  await pdfWorker.close();
-  process.exit(0);
-});
+logger.info("PDF worker started and listening for jobs...");

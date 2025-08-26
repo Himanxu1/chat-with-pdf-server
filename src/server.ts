@@ -19,10 +19,10 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Request logging
 app.use(requestLogger);
-
 // Rate limiting
 app.use(generalRateLimiter);
 
+app.use("/api/v1", appRouter);
 // Routes
 app.get("/", (_req, res) => {
   res.send("Welcome to the ChatPDF server!");
@@ -87,8 +87,6 @@ app.get("/health", async (_req, res) => {
     });
   }
 });
-
-app.use("/api/v1", appRouter);
 
 // Error handling
 app.use(notFoundHandler);

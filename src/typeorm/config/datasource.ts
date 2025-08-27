@@ -2,6 +2,9 @@ import { DataSource } from "typeorm";
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
+import { User } from "../entities/user.js";
+import { Chat } from "../entities/chat.js";
+import { Message } from "../entities/message.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,6 +18,8 @@ const config = {
   dbHost: process.env.DB_HOST ?? "",
 };
 
+console.log(path.resolve(__dirname, "../entities/**/*.{js,ts}"));
+
 export const dataSource: DataSource | null = new DataSource({
   type: "mysql",
   password: config.dbPassword,
@@ -23,6 +28,7 @@ export const dataSource: DataSource | null = new DataSource({
   host: config.dbHost,
   synchronize: false,
   logging: false,
-  entities: [path.resolve(__dirname, "../entities/**/*.{js,ts}")],
+  entities: [User, Chat, Message],
   migrations: [path.resolve(__dirname, "../migrations/**/*.{js,ts}")],
 });
+console.log(dataSource.isInitialized);

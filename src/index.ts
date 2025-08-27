@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import * as http from "http";
 import logger from "./utils/logger.js";
 import app from "./server.js";

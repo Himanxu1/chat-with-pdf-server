@@ -1,11 +1,9 @@
 import { dataSource } from "./datasource.js";
 
 export async function getDataSource() {
-  if (dataSource && dataSource.isInitialized) return dataSource;
-  if (!dataSource) {
+  if (dataSource && !dataSource.isInitialized) {
     await dataSource.initialize();
   }
-
   return dataSource;
 }
 

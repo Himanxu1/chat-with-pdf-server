@@ -10,4 +10,12 @@ export class UserService {
   async findUserByEmail(email: string): Promise<User | null> {
     return await userRepository.findOneBy({ email });
   }
+
+  async findUserByUsername(username: string): Promise<User | null> {
+    const name = username.split(" ");
+    return await userRepository.findOneBy({
+      firstName: name[0],
+      lastName: name[1],
+    });
+  }
 }

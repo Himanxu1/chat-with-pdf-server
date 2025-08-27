@@ -15,6 +15,9 @@ const envSchema = z.object({
   QDRANT_COLLECTION: z.string().default("langchainjs-testing"),
   UPLOAD_MAX_SIZE: z.string().transform(Number).default("10485760"),
 
+  // JWT Configuration
+  JWT_SECRET: z.string().default("supersecretjwtkey"),
+
   // GCP Configuration
   GCP_PROJECT_ID: z.string().optional(),
   GCP_KEY_FILE_PATH: z.string().optional(),

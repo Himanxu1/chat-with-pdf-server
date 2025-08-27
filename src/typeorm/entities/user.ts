@@ -55,6 +55,13 @@ export class User {
   })
   email: string;
 
+  @Column({
+    name: "password",
+    type: "varchar",
+    nullable: false,
+  })
+  password: string;
+
   @OneToMany(() => Chat, (chat) => chat.user)
   chats: Chat[];
 }

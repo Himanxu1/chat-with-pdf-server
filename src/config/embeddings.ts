@@ -12,7 +12,6 @@ export const embeddings = env.GOOGLE_API_KEY
     })
   : null;
 
-// Helper function to check if embeddings are available
 export const isEmbeddingsAvailable = (): boolean => {
   return embeddings !== null;
 };

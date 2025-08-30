@@ -103,7 +103,11 @@ class AuthController {
       res.json({
         message: "User logged in successfully",
         status: true,
-        user: { username: user.firstName + user.lastName, email: user.email },
+        user: {
+          username: user.firstName + user.lastName,
+          email: user.email,
+          id: user.id,
+        },
         token,
       });
     } catch (err: any) {

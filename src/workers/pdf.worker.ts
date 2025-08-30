@@ -31,14 +31,28 @@ export const pdfWorker = new Worker<PdfJobData, PdfJobResult>(
       });
       const splitDocs = await textSplitter.splitDocuments(docs);
 
-      logger.info(`Split PDF into ${splitDocs.length} chunks`);
+      // Add chatId to each document's metadata
+
+      splitDocs.forEach((doc, index) => {
+        doc.metadata = {
+          ...doc.metadata,
+          chatId: data.chatId,
+          pdfId: `pdf_${job.id}`,
+          filename: data.filename,
+          chunkIndex: index,
+        };
+      });
+
+      logger.info(
+        `Split PDF into ${splitDocs.length} chunks for chat ${data.chatId}`
+      );
 
       // 3) Vector store (Qdrant)
       const vectorStore = await QdrantVectorStore.fromExistingCollection(
         embeddings!,
         {
           url: "http://localhost:6333",
-          collectionName: "langchainjs-testing",
+          collectionName: "langchainjs-testing", // Consider making this dynamic or using a global collection with filtering
         }
       );
       logger.info(`${JSON.stringify(vectorStore)}---- vectorStore`);

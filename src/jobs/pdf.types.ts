@@ -3,6 +3,7 @@ export interface PdfJobData {
   filename: string;
   destination: string;
   path: string;
+  chatId: string;
 }
 
 export interface PdfJobResult {

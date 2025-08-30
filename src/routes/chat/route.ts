@@ -7,7 +7,13 @@ import {
 } from "../../middleware/rateLimiter.js";
 import multer from "multer";
 import path from "path";
-import { chatSchema, uploadPdfSchema } from "./contract.js";
+import {
+  chatSchema,
+  uploadPdfSchema,
+  createChatSchema,
+  getChatByUserSchema,
+  getMessagesByChatIdSchema,
+} from "./contract.js";
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -23,9 +29,30 @@ const upload = multer({ storage });
 const router = Router();
 
 router.post(
+  "/new",
+  apiRateLimiter,
+  // validateRequest(createChatSchema),
+  ChatControllerService.createChat
+);
+
+router.get(
+  "/user/:userId",
+  apiRateLimiter,
+  // validateRequest(getChatByUserSchema), // Add validation for getChatByUserSchema
+  ChatControllerService.getChatsByUserId
+);
+
+router.get(
+  "/:chatId/messages",
+  apiRateLimiter,
+  validateRequest(getMessagesByChatIdSchema), // Add validation for getMessagesByChatIdSchema
+  ChatControllerService.getMessagesByChatId
+);
+
+router.post(
   "/",
   apiRateLimiter,
-  validateRequest(chatSchema),
+ // validateRequest(chatSchema),
   ChatControllerService.uploadChatToVector
 );
 
@@ -33,7 +60,7 @@ router.post(
   "/pdf",
   uploadRateLimiter,
   upload.single("pdf"),
-  // validateRequest(uploadPdfSchema),
+  // validateRequest(uploadPdfSchema), // Add validation for uploadPdfSchema
   ChatControllerService.uploadPdftoQueue
 );
 

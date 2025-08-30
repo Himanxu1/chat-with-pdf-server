@@ -43,6 +43,13 @@ export class Chat {
   })
   userId: string;
 
+  @Column({
+    name: "pdf_id",
+    type: "varchar",
+    nullable: true, // A chat can exist without a PDF initially
+  })
+  pdfId: string;
+
   @ManyToOne(() => User, (user) => user.chats)
   @JoinColumn({ name: "user_id", referencedColumnName: "id" })
   user: Relation<User>;

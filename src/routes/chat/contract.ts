@@ -1,11 +1,33 @@
-import z from "zod";
+import { z } from "zod";
 
-export const uploadPdfSchema = z.object({
-  pdf: z.any().refine((pdf) => pdf && pdf.mimetype === "application/pdf", {
-    message: "Only PDF files are allowed",
+export const chatSchema = z.object({
+  body: z.object({
+    question: z.string(),
+    chatId: z.string().uuid(), // Add chatId validation
   }),
 });
 
-export const chatSchema = z.object({
-  question: z.string().min(1, "Question is required"),
+export const uploadPdfSchema = z.object({
+  body: z.object({
+    chatId: z.string().uuid(), // Add chatId validation
+  }),
+});
+
+export const createChatSchema = z.object({
+  body: z.object({
+    userId: z.string().uuid(),
+    pdfId: z.string().uuid().optional().nullable(),
+  }),
+});
+
+export const getChatByUserSchema = z.object({
+  params: z.object({
+    userId: z.string().uuid(),
+  }),
+});
+
+export const getMessagesByChatIdSchema = z.object({
+  params: z.object({
+    chatId: z.string().uuid(),
+  }),
 });

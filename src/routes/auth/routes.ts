@@ -20,4 +20,6 @@ router.post(
   AuthControllerService.register
 );
 
+router.get("/logout", AuthControllerService.logout);
+
 export default router;

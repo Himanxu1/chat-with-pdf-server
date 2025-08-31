@@ -100,6 +100,12 @@ class AuthController {
         { expiresIn: "1h" }
       );
 
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none",
+      });
+
       res.json({
         message: "User logged in successfully",
         status: true,
@@ -115,6 +121,23 @@ class AuthController {
       return res
         .status(500)
         .json({ error: "Failed to log in user", status: false });
+    }
+  };
+
+  public logout = async (req: any, res: any) => {
+    try {
+      res.clearCookie("token", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+      });
+      return res.json({ success: true, message: "Logged out successfully" });
+    } catch (err: any) {
+      console.error("Error logging out user:", err);
+      return res
+        .status(500)
+        .json({ error: "Failed to logout user", status: false });
     }
   };
 }

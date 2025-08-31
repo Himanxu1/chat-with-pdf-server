@@ -13,7 +13,14 @@ import { getDatabaseConnection } from "./typeorm/dbConnection.js";
 const app = express();
 
 // Middleware
-app.use(cors());
+
+app.use(
+  cors({
+    origin: "http://localhost:3000", // frontend origin
+    credentials: true, // allow cookies
+  })
+);
+
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 

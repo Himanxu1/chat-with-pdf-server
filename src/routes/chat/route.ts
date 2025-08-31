@@ -45,14 +45,14 @@ router.get(
 router.get(
   "/:chatId/messages",
   apiRateLimiter,
-  validateRequest(getMessagesByChatIdSchema), // Add validation for getMessagesByChatIdSchema
+  // validateRequest(getMessagesByChatIdSchema), // Add validation for getMessagesByChatIdSchema
   ChatControllerService.getMessagesByChatId
 );
 
 router.post(
   "/",
   apiRateLimiter,
- // validateRequest(chatSchema),
+  // validateRequest(chatSchema),
   ChatControllerService.uploadChatToVector
 );
 

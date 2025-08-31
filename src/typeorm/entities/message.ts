@@ -33,6 +33,14 @@ export class Message {
   content: string;
 
   @Column({
+    name: "role",
+    type: "enum",
+    enum: ["user", "assistant"],
+    nullable: false,
+  })
+  role: "user" | "assistant";
+
+  @Column({
     name: "chat_id",
     type: "varchar",
     nullable: false,

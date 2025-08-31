@@ -3,7 +3,6 @@ import { llm, isLLMAvailable } from "../../config/llm.js";
 import { enqueuePdfJob } from "../../producers/pdf.producer.js";
 import { embeddings, isEmbeddingsAvailable } from "../../config/embeddings.js";
 import { registerPdfQueueEventHandlers } from "../../events/pdf.events.js";
-import { env } from "../../config/env.js";
 import logger from "../../utils/logger.js";
 import type { Request, Response } from "express";
 import { Chat } from "../../typeorm/entities/chat.js";
@@ -148,6 +147,16 @@ export class ChatController {
           .json({ error: "Chat not found or no PDF associated" });
       }
 
+      const messageRepository = dataSource.getRepository(Message);
+
+      // Save user's message
+      const userMessage = messageRepository.create({
+        chatId: chat.id.toString(),
+        content: question,
+        role: "user",
+      });
+      await messageRepository.save(userMessage);
+
       const vectorStore = await QdrantVectorStore.fromExistingCollection(
         embeddings!,
         {
@@ -204,6 +213,14 @@ export class ChatController {
       } else {
         answerText = JSON.stringify(aiMsg?.content || aiMsg || "", null, 2);
       }
+
+      // Save AI's message
+      const assistantMessage = messageRepository.create({
+        chatId: chat.id.toString(),
+        content: answerText,
+        role: "assistant",
+      });
+      await messageRepository.save(assistantMessage);
 
       logger.info(
         `Generated answer for question: ${question} in chat ${chatId}`

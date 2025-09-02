@@ -9,7 +9,7 @@ import { Message } from "../entities/message.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config({ path: path.join(__dirname, "../../../.env") });
+dotenv.config();
 
 const config = {
   dbPassword: process.env.DB_PASSWORD ?? "",
@@ -17,8 +17,6 @@ const config = {
   dbUser: process.env.DB_USER ?? "",
   dbHost: process.env.DB_HOST ?? "",
 };
-
-console.log(path.resolve(__dirname, "../entities/**/*.{js,ts}"));
 
 export const dataSource: DataSource | null = new DataSource({
   type: "mysql",
@@ -31,4 +29,3 @@ export const dataSource: DataSource | null = new DataSource({
   entities: [User, Chat, Message],
   migrations: [path.resolve(__dirname, "../migrations/**/*.{js,ts}")],
 });
-console.log(dataSource.isInitialized);

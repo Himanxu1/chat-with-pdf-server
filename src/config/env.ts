@@ -1,22 +1,23 @@
 import { z } from "zod";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
   PORT: z.string().transform(Number).default("3001"),
-  DATABASE_URL: z
-    .string()
-    .default("mysql://admin:admin@localhost:3306/chatpdf"),
+  DATABASE_URL: z.string(),
   REDIS_HOST: z.string().default("localhost"),
-  REDIS_PORT: z.string().transform(Number).default("6379"),
-  GOOGLE_API_KEY: z.string().default("AIzaSyBmR0hm2mOSFvscjtrCeT_ftKOeJ2P6cAk"),
-  QDRANT_URL: z.string().default("http://localhost:6333"),
-  QDRANT_COLLECTION: z.string().default("langchainjs-testing"),
-  UPLOAD_MAX_SIZE: z.string().transform(Number).default("10485760"),
+  REDIS_PORT: z.string().transform(Number),
+  GOOGLE_API_KEY: z.string(),
+  QDRANT_URL: z.string(),
+  QDRANT_COLLECTION: z.string(),
+  UPLOAD_MAX_SIZE: z.string().transform(Number),
 
   // JWT Configuration
-  JWT_SECRET: z.string().default("supersecretjwtkey"),
+  JWT_SECRET: z.string(),
 
   // GCP Configuration
   GCP_PROJECT_ID: z.string().optional(),

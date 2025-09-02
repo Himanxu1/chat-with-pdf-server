@@ -1,19 +1,11 @@
 import { Router } from "express";
 import ChatControllerService from "./chat.controller.js";
-import { validateRequest } from "../../middleware/validation.js";
 import {
   apiRateLimiter,
   uploadRateLimiter,
 } from "../../middleware/rateLimiter.js";
 import multer from "multer";
 import path from "path";
-import {
-  chatSchema,
-  uploadPdfSchema,
-  createChatSchema,
-  getChatByUserSchema,
-  getMessagesByChatIdSchema,
-} from "./contract.js";
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {

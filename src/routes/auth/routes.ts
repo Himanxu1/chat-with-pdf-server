@@ -5,10 +5,6 @@ import { validateRequest } from "../../middleware/validation.js";
 
 const router = Router();
 
-router.get("/hello", (_, res) => {
-  res.send("Hello from Auth!");
-});
-
 router.post(
   "/login",
   validateRequest(loginSchema),

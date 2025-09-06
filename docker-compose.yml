@@ -1,31 +1,31 @@
-version: '3.8' 
+version: '3.8'
 
 services:
   mysql:
     image: mysql:8.0.33
     ports:
-      - "3306:3306" 
+      - '3306:3306'
     environment:
-      MYSQL_ROOT_PASSWORD: root 
-      MYSQL_DATABASE: chatdb  
-      MYSQL_USER: admin 
-      MYSQL_PASSWORD: admin  
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: chatdb
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin
     volumes:
-      - mysql-data:/var/lib/mysql  
-    restart: unless-stopped 
+      - mysql-data:/var/lib/mysql
+    restart: unless-stopped
 
   valkey:
-    image: valkey/valkey:latest 
+    image: valkey/valkey:latest
     ports:
-      - "6379:6379" 
+      - '6379:6379'
 
   qdrant:
-    image: qdrant/qdrant:latest 
+    image: qdrant/qdrant:latest
     ports:
-      - "6333:6333"  
+      - '6333:6333'
     volumes:
-      - qdrant-data:/qdrant/storage 
+      - qdrant-data:/qdrant/storage
 
 volumes:
-  mysql-data: 
-  qdrant-data:  
+  mysql-data:
+  qdrant-data:

@@ -17,7 +17,7 @@ const app = express()
 
 app.use(
   cors({
-    origin: 'http://localhost:3000', // frontend origin
+    origin: 'https://www.chatpdf.site',
     credentials: true, // allow cookies
   }),
 )

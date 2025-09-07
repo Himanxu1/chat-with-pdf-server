@@ -24,7 +24,12 @@ export class Subscription {
   @JoinColumn({ name: 'plan_id' })
   plan: Relation<Plan>
 
-  @Column({ name: 'razorpay_subscription_id', type: 'varchar', unique: true })
+  @Column({
+    name: 'razorpay_subscription_id',
+    type: 'varchar',
+    unique: true,
+    nullable: true,
+  })
   razorpaySubscriptionId: string
 
   @Column({ name: 'status', type: 'varchar' })

@@ -15,17 +15,12 @@ export class UserService {
     const name = username.split(' ')
     return await userRepository.findOneBy({
       firstName: name[0],
-      lastName: name[1],
+      lastName: name[1] ? name[1] : null,
     })
   }
 
   async updateUserProfle(username: string, email: string) {
     const name = username.split(' ')
-    return await userRepository.update({
-
-    },
-  {
-    
-  })
+    return await userRepository.update({}, {})
   }
 }

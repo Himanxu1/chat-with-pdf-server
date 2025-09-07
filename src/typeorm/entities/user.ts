@@ -37,6 +37,7 @@ export class User {
     name: 'last_name',
     type: 'varchar',
     length: 255,
+    nullable: true,
   })
   lastName: string
 

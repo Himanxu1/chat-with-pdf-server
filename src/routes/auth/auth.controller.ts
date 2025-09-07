@@ -50,7 +50,7 @@ class AuthController {
       // Save user to database
       const newUser = await this.userService.createUser({
         firstName: name[0],
-        lastName: name[1],
+        lastName: name[1] ? name[1] : null,
         password: hashedPassword,
         email,
       })
@@ -62,7 +62,7 @@ class AuthController {
         status: 'active',
         razorpaySubscriptionId: null,
         currentStart: Date.now() / 1000,
-        currentEnd: null, // free plan has no expiry
+        currentEnd: null,
       })
 
       await subscriptionRepository.save(sub)

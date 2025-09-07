@@ -17,7 +17,7 @@ router.post(
 );
 
 
-router.put('/profile',AuthControllerService.)
+router.put('/profile',AuthControllerService.updateProfile)
 
 router.get("/logout", AuthControllerService.logout);
 

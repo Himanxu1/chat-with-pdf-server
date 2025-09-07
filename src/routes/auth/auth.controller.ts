@@ -157,12 +157,9 @@ class AuthController {
     try {
       const { username, email } = req.body
 
-
-      if(!username && !email){
+      if (!username && !email) {
         return res.send('')
       }
-
-
     } catch (err) {
       console.error('Error updating profile:', err)
       return res

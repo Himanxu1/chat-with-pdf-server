@@ -18,6 +18,16 @@ export class Plan {
   @Column({ name: 'razorpay_plan_id', type: 'varchar', nullable: true })
   razorpayPlanId: string
 
+  // New limit fields
+  @Column({ name: 'daily_pdf_limit', type: 'int', default: 0 })
+  dailyPdfLimit: number
+
+  @Column({ name: 'monthly_pdf_limit', type: 'int', default: 0 })
+  monthlyPdfLimit: number
+
+  @Column({ name: 'max_file_size_mb', type: 'int', default: 0 })
+  maxFileSizeMb: number
+
   @OneToMany(() => Subscription, sub => sub.plan)
   subscriptions: Subscription[]
 }

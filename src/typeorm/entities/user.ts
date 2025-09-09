@@ -13,7 +13,7 @@ import { Subscription } from './subscription.js'
 @Entity()
 export class User {
   @PrimaryGeneratedColumn('uuid')
-  id: number
+  id: string
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date

@@ -1,13 +1,13 @@
-import { QdrantVectorStore } from "@langchain/qdrant";
 import { llm, isLLMAvailable } from "../../config/llm.js";
 import { enqueuePdfJob } from "../../producers/pdf.producer.js";
-import { embeddings, isEmbeddingsAvailable } from "../../config/embeddings.js";
+import { isEmbeddingsAvailable } from "../../config/embeddings.js";
 import { registerPdfQueueEventHandlers } from "../../events/pdf.events.js";
 import logger from "../../utils/logger.js";
 import type { Request, Response } from "express";
 import { Chat } from "../../typeorm/entities/chat.js";
 import { dataSource } from "../../typeorm/config/datasource.js";
 import { Message } from "../../typeorm/entities/message.js";
+import { enhancedRetrieverService } from "../../services/enhancedRetriever.js";
 
 registerPdfQueueEventHandlers();
 
@@ -157,40 +157,38 @@ export class ChatController {
       });
       await messageRepository.save(userMessage);
 
-      const vectorStore = await QdrantVectorStore.fromExistingCollection(
-        embeddings!,
-        {
-          url: "http://localhost:6333",
-          collectionName: "langchainjs-testing", // Consider making this dynamic or using a global collection with filtering
-        }
-      );
-      logger.info(`${JSON.stringify(vectorStore)}-----vectorStore`);
-
-      // Filter retriever by pdfId (assuming pdfId is stored as metadata in Qdrant)
-      const ret = await vectorStore.asRetriever({
-        k: 2,
-        filter: {
-          must: [
-            {
-              key: "metadata.pdfId", // The key in Qdrant metadata
-              match: {
-                value: chat.pdfId, // The value to match
-              },
-            },
-          ],
-        },
+      // Use enhanced retrieval with query rewriting
+      const retrievalResult = await enhancedRetrieverService.retrieveDocuments({
+        pdfId: chat.pdfId,
+        originalQuery: question,
+        maxResults: 5,
+        minScore: 0.6,
+        useQueryRewriting: true,
+        useHybridSearch: true
       });
 
-      logger.info(`${JSON.stringify(ret)}-----rete`);
-
-      const result = await ret.invoke(question);
-      const context = result.map((r: any) => r.pageContent).join("\n\n");
+      const context = retrievalResult.results.map((r: any) => r.content).join("\n\n");
 
       logger.info(
-        `Retrieved ${result.length} documents for question: ${question} in chat ${chatId}`
+        `Enhanced retrieval: Retrieved ${retrievalResult.results.length} documents for question: "${question}" using ${retrievalResult.retrievalStrategy} strategy`
       );
+      logger.info(`Query analysis: ${JSON.stringify(retrievalResult.queryAnalysis)}`);
 
-      const SYSTEM_PROMPT = `You are a helpful assistant that answers questions based on the provided context. If the question is not related to the context, reply with "I\'m sorry, I don\'t have enough information to answer that question."`;
+      // Enhanced system prompt using query analysis
+      const SYSTEM_PROMPT = `You are a helpful assistant that answers questions based on the provided context. 
+
+Query Analysis:
+- Original Query: "${retrievalResult.queryAnalysis.originalQuery}"
+- Rewritten Query: "${retrievalResult.queryAnalysis.rewrittenQuery}"
+- Intent: ${retrievalResult.queryAnalysis.intent}
+- Key Keywords: ${retrievalResult.queryAnalysis.keywords.join(', ')}
+
+Instructions:
+1. Answer based on the provided context
+2. If the question is not related to the context, reply with "I'm sorry, I don't have enough information to answer that question."
+3. Use the query analysis to better understand what the user is asking
+4. Provide clear, accurate, and helpful responses
+5. If multiple relevant pieces of information are found, synthesize them coherently`;
 
       const aiMsg = await llm!.invoke([
         ["system", SYSTEM_PROMPT],

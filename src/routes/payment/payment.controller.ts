@@ -3,6 +3,8 @@ import Razorpay from 'razorpay'
 import crypto from 'crypto'
 import { subscriptionRepository } from '../../typeorm/repository/subscription.repository.js'
 import { planRepository } from '../../typeorm/repository/plan.repository.js'
+import type { Request, Response } from 'express'
+import type { AuthenticatedRequest } from '../../middleware/authenticateToken.js'
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID!,
@@ -18,7 +20,7 @@ export class PaymentController {
     }
     return PaymentController.instance
   }
-  public createPayment = async (req: any, res: any) => {
+  public createPayment = async (req: Request, res: Response) => {
     try {
       const { amount } = req.body
 
@@ -36,7 +38,7 @@ export class PaymentController {
     }
   }
 
-  public verifySignature = async (req: any, res: any) => {
+  public verifySignature = async (req: Request, res: Response) => {
     try {
       const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
         req.body
@@ -57,7 +59,7 @@ export class PaymentController {
     }
   }
 
-  public createPlan = async (req: any, res: any) => {
+  public createPlan = async (req: Request, res: Response) => {
     try {
       const plans = [
         { name: 'Free', price: 0 },
@@ -89,44 +91,101 @@ export class PaymentController {
     }
   }
 
-  public createSubscription = async (req: any, res: any) => {
+  public createSubscription = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const userId = req.user.id
       const { tier } = req.body
 
+      logger.info(`Creating subscription for user ${userId}, tier: ${tier}`)
+
       const plan = await planRepository.findOne({ where: { name: tier } })
-      if (!plan) return res.status(400).json({ error: 'Invalid plan' })
+      if (!plan) {
+        logger.error(`Plan not found for tier: ${tier}`)
+        return res.status(400).json({ error: 'Invalid plan' })
+      }
+
+      logger.info(`Found plan: ${plan.name}, price: ${plan.price}, razorpayPlanId: ${plan.razorpayPlanId}`)
+
+      // Check for existing subscription
+      const existingSub = await subscriptionRepository.findOne({
+        where: { user: { id: userId } },
+        relations: ['plan'],
+      })
 
       let sub
       if (plan.price === 0) {
         // Free plan: just store in DB
-        sub = subscriptionRepository.create({
-          user: { id: userId },
-          plan,
-          status: 'active',
-        })
-        await subscriptionRepository.save(sub)
+        if (existingSub) {
+          // Update existing subscription
+          existingSub.plan = plan
+          existingSub.status = 'active'
+          existingSub.razorpaySubscriptionId = null
+          await subscriptionRepository.save(existingSub)
+          sub = existingSub
+        } else {
+          // Create new subscription
+          sub = subscriptionRepository.create({
+            user: { id: userId },
+            plan,
+            status: 'active',
+          })
+          await subscriptionRepository.save(sub)
+        }
         return res.json({ ok: true, subscription: sub })
       }
 
-      // Paid plan: create Razorpay subscription
+      // For Basic plan, activate immediately (no Razorpay needed for testing)
+      if (plan.name === 'Basic') {
+        logger.info(`Activating Basic plan immediately for user ${userId}`)
+        if (existingSub) {
+          // Update existing subscription
+          existingSub.plan = plan
+          existingSub.status = 'active'
+          existingSub.razorpaySubscriptionId = null
+          await subscriptionRepository.save(existingSub)
+          sub = existingSub
+        } else {
+          // Create new subscription
+          sub = subscriptionRepository.create({
+            user: { id: userId },
+            plan,
+            status: 'active',
+          })
+          await subscriptionRepository.save(sub)
+        }
+        return res.json({ ok: true, subscription: sub })
+      }
+
+      // For Pro plan: create Razorpay subscription
+      logger.info(`Creating Razorpay subscription with plan_id: ${plan.razorpayPlanId}`)
       const razorpaySub = await razorpay.subscriptions.create({
         plan_id: plan.razorpayPlanId,
         total_count: 12, // 12 cycles
         customer_notify: true,
         notes: { userId },
       })
+      logger.info(`Razorpay subscription created: ${razorpaySub.id}`)
 
-      sub = subscriptionRepository.create({
-        user: { id: userId },
-        plan,
-        razorpaySubscriptionId: razorpaySub.id,
-        status: 'created',
-      })
-      await subscriptionRepository.save(sub)
+      if (existingSub) {
+        // Update existing subscription
+        existingSub.plan = plan
+        existingSub.razorpaySubscriptionId = razorpaySub.id
+        existingSub.status = 'created'
+        await subscriptionRepository.save(existingSub)
+        sub = existingSub
+      } else {
+        // Create new subscription
+        sub = subscriptionRepository.create({
+          user: { id: userId },
+          plan,
+          razorpaySubscriptionId: razorpaySub.id,
+          status: 'created',
+        })
+        await subscriptionRepository.save(sub)
+      }
 
-      res.json({
-        key: process.env.RZP_KEY_ID,
+      return res.json({
+        key: process.env.RAZORPAY_KEY_ID,
         subscription_id: razorpaySub.id,
       })
     } catch (error) {
@@ -135,7 +194,7 @@ export class PaymentController {
     }
   }
 
-  public verifySubscription = async (req: any, res: any) => {
+  public verifySubscription = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const {
         razorpay_payment_id,
@@ -144,7 +203,7 @@ export class PaymentController {
       } = req.body
 
       const hmac = crypto
-        .createHmac('sha256', process.env.RZP_KEY_SECRET)
+        .createHmac('sha256', process.env.RAZORPAY_SECRET!)
         .update(`${razorpay_payment_id}|${razorpay_subscription_id}`)
         .digest('hex')
 
@@ -157,35 +216,49 @@ export class PaymentController {
         { status: 'authenticated' },
       )
 
-      res.json({ ok: true })
+      return res.json({ ok: true })
     } catch (error) {
       logger.error(error)
       throw new Error('Error verifying subscription', error)
     }
   }
 
-  public getUserSubscriptionStatus = async (req: any, res: any) => {
+  public getUserSubscriptionStatus = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const userId = req.user.id
-      const sub = await subscriptionRepository.findOne({
+      
+      // First try to get active subscription
+      let sub = await subscriptionRepository.findOne({
         where: { user: { id: userId }, status: 'active' },
         relations: ['plan'],
       })
 
-      res.json({ subscription: sub })
+      // If no active subscription, get the most recent one
+      if (!sub) {
+        sub = await subscriptionRepository.findOne({
+          where: { user: { id: userId } },
+          relations: ['plan'],
+          order: { createdAt: 'DESC' },
+        })
+      }
+
+      logger.info(`User ${userId} subscription status: ${sub?.status || 'none'}, plan: ${sub?.plan?.name || 'none'}`)
+      return res.json({ subscription: sub })
     } catch (error) {
       logger.error(error)
       throw new Error('Error getting user subscription status', error)
     }
   }
 
-  public cancelUserSubscription = async (req: any, res: any) => {
+  public cancelUserSubscription = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const userId = req.user.id
       const sub = await subscriptionRepository.findOne({
         where: { user: { id: userId }, status: 'active' },
       })
-      if (!sub) return res.status(400).json({ error: 'No active subscription' })
+      if (!sub) {
+        return res.status(400).json({ error: 'No active subscription' })
+      }
 
       if (sub.razorpaySubscriptionId) {
         await razorpay.subscriptions.cancel(sub.razorpaySubscriptionId, true)
@@ -195,7 +268,7 @@ export class PaymentController {
         { id: sub.id },
         { status: 'cancelled' },
       )
-      res.json({ ok: true })
+      return res.json({ ok: true })
     } catch (error) {
       logger.error(error)
       throw new Error('Error cancelling user subscription', error)

@@ -7,6 +7,7 @@ import {
   initializeDatabase,
 } from "./typeorm/dbConnection.js";
 import { pdfWorker } from "./workers/pdf.worker.js";
+import { planInitializerService } from "./services/planInitializer.js";
 // import { startCleanupScheduler } from "./utils/cleanup.js";
 // import { LogSyncService } from "./services/logSyncService.js";
 // import { env } from "./config/env.js";
@@ -16,6 +17,10 @@ const main = async () => {
     logger.info("Starting Chat with PDF server...");
     await initializeDatabase();
     logger.info("Database initialized successfully");
+
+    // Initialize plans with limits
+    await planInitializerService.initializePlans();
+    logger.info("Plans initialized successfully");
 
     logger.info("Starting PDF worker...");
 

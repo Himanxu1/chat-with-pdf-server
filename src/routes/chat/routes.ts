@@ -7,6 +7,7 @@ import {
 import multer from 'multer'
 import path from 'path'
 import { checkChatLimit } from '../../middleware/checkChatLimit.js'
+import { checkPdfUploadLimit } from '../../middleware/checkPdfUploadLimit.js'
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -55,7 +56,7 @@ router.post(
   '/pdf',
   uploadRateLimiter,
   upload.single('pdf'),
-  checkChatLimit,
+  checkPdfUploadLimit,
   // validateRequest(uploadPdfSchema), // Add validation for uploadPdfSchema
   ChatControllerService.uploadPdftoQueue,
 )

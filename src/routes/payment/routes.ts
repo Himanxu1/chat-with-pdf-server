@@ -10,7 +10,7 @@ router.get('/create-plans', PaymentControllerService.createPlan)
 
 router.post('/subscription-start', PaymentControllerService.createSubscription)
 
-router.post('subscrption-verify', PaymentControllerService.verifySubscription)
+router.post('/subscription-verify', PaymentControllerService.verifySubscription)
 
 router.get(
   '/subscription-status',

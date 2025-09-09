@@ -17,7 +17,7 @@ const app = express()
 
 app.use(
   cors({
-    origin: 'https://www.chatpdf.site',
+    origin: ['https://www.chatpdf.site', 'http://localhost:3000', 'http://localhost:3002'],
     credentials: true, // allow cookies
   }),
 )
@@ -55,7 +55,7 @@ app.get('/health', async (_req, res) => {
       await redis.ping()
       await redis.disconnect()
       healthChecks.services['redis'] = 'connected'
-    } catch (error) {
+    } catch {
       healthChecks.services['redis'] = 'disconnected'
       healthChecks.status = 'degraded'
     }
@@ -65,7 +65,7 @@ app.get('/health', async (_req, res) => {
       const dataSource = await getDatabaseConnection()
       await dataSource.query('SELECT 1')
       healthChecks.services['database'] = 'connected'
-    } catch (error) {
+    } catch {
       healthChecks.services['database'] = 'disconnected'
       healthChecks.status = 'degraded'
     }
@@ -81,7 +81,7 @@ app.get('/health', async (_req, res) => {
         healthChecks.services['qdrant'] = 'disconnected'
         healthChecks.status = 'degraded'
       }
-    } catch (error) {
+    } catch {
       healthChecks.services['qdrant'] = 'disconnected'
       healthChecks.status = 'degraded'
     }

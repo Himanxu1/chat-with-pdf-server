@@ -91,7 +91,10 @@ export class PaymentController {
     }
   }
 
-  public createSubscription = async (req: AuthenticatedRequest, res: Response) => {
+  public createSubscription = async (
+    req: AuthenticatedRequest,
+    res: Response,
+  ) => {
     try {
       const userId = req.user.id
       const { tier } = req.body
@@ -104,7 +107,9 @@ export class PaymentController {
         return res.status(400).json({ error: 'Invalid plan' })
       }
 
-      logger.info(`Found plan: ${plan.name}, price: ${plan.price}, razorpayPlanId: ${plan.razorpayPlanId}`)
+      logger.info(
+        `Found plan: ${plan.name}, price: ${plan.price}, razorpayPlanId: ${plan.razorpayPlanId}`,
+      )
 
       // Check for existing subscription
       const existingSub = await subscriptionRepository.findOne({
@@ -113,17 +118,18 @@ export class PaymentController {
       })
 
       let sub
+
+      // 🔹 Case 1: Free Plan
       if (plan.price === 0) {
-        // Free plan: just store in DB
+        logger.info(`Activating Free plan for user ${userId}`)
+
         if (existingSub) {
-          // Update existing subscription
           existingSub.plan = plan
           existingSub.status = 'active'
           existingSub.razorpaySubscriptionId = null
           await subscriptionRepository.save(existingSub)
           sub = existingSub
         } else {
-          // Create new subscription
           sub = subscriptionRepository.create({
             user: { id: userId },
             plan,
@@ -131,50 +137,35 @@ export class PaymentController {
           })
           await subscriptionRepository.save(sub)
         }
-        return res.json({ ok: true, subscription: sub })
+
+        return res.json({
+          ok: true,
+          subscription: sub,
+          subscription_id: sub.id, // return DB subscription id
+        })
       }
 
-      // For Basic plan, activate immediately (no Razorpay needed for testing)
-      if (plan.name === 'Basic') {
-        logger.info(`Activating Basic plan immediately for user ${userId}`)
-        if (existingSub) {
-          // Update existing subscription
-          existingSub.plan = plan
-          existingSub.status = 'active'
-          existingSub.razorpaySubscriptionId = null
-          await subscriptionRepository.save(existingSub)
-          sub = existingSub
-        } else {
-          // Create new subscription
-          sub = subscriptionRepository.create({
-            user: { id: userId },
-            plan,
-            status: 'active',
-          })
-          await subscriptionRepository.save(sub)
-        }
-        return res.json({ ok: true, subscription: sub })
-      }
+      // 🔹 Case 2: Basic / Pro Plan → Use Razorpay
+      logger.info(
+        `Creating Razorpay subscription for ${plan.name} plan with plan_id: ${plan.razorpayPlanId}`,
+      )
 
-      // For Pro plan: create Razorpay subscription
-      logger.info(`Creating Razorpay subscription with plan_id: ${plan.razorpayPlanId}`)
       const razorpaySub = await razorpay.subscriptions.create({
         plan_id: plan.razorpayPlanId,
-        total_count: 12, // 12 cycles
+        total_count: 12, // 12 billing cycles (1 year if monthly)
         customer_notify: true,
         notes: { userId },
       })
+
       logger.info(`Razorpay subscription created: ${razorpaySub.id}`)
 
       if (existingSub) {
-        // Update existing subscription
         existingSub.plan = plan
         existingSub.razorpaySubscriptionId = razorpaySub.id
         existingSub.status = 'created'
         await subscriptionRepository.save(existingSub)
         sub = existingSub
       } else {
-        // Create new subscription
         sub = subscriptionRepository.create({
           user: { id: userId },
           plan,
@@ -185,16 +176,23 @@ export class PaymentController {
       }
 
       return res.json({
+        ok: true,
         key: process.env.RAZORPAY_KEY_ID,
         subscription_id: razorpaySub.id,
+        subscription: sub,
       })
     } catch (error) {
       logger.error(error)
-      throw new Error('Error creating Subscription', error)
+      return res
+        .status(500)
+        .json({ error: 'Error creating subscription', details: error.message })
     }
   }
 
-  public verifySubscription = async (req: AuthenticatedRequest, res: Response) => {
+  public verifySubscription = async (
+    req: AuthenticatedRequest,
+    res: Response,
+  ) => {
     try {
       const {
         razorpay_payment_id,
@@ -223,10 +221,13 @@ export class PaymentController {
     }
   }
 
-  public getUserSubscriptionStatus = async (req: AuthenticatedRequest, res: Response) => {
+  public getUserSubscriptionStatus = async (
+    req: AuthenticatedRequest,
+    res: Response,
+  ) => {
     try {
       const userId = req.user.id
-      
+
       // First try to get active subscription
       let sub = await subscriptionRepository.findOne({
         where: { user: { id: userId }, status: 'active' },
@@ -242,7 +243,9 @@ export class PaymentController {
         })
       }
 
-      logger.info(`User ${userId} subscription status: ${sub?.status || 'none'}, plan: ${sub?.plan?.name || 'none'}`)
+      logger.info(
+        `User ${userId} subscription status: ${sub?.status || 'none'}, plan: ${sub?.plan?.name || 'none'}`,
+      )
       return res.json({ subscription: sub })
     } catch (error) {
       logger.error(error)
@@ -250,7 +253,10 @@ export class PaymentController {
     }
   }
 
-  public cancelUserSubscription = async (req: AuthenticatedRequest, res: Response) => {
+  public cancelUserSubscription = async (
+    req: AuthenticatedRequest,
+    res: Response,
+  ) => {
     try {
       const userId = req.user.id
       const sub = await subscriptionRepository.findOne({

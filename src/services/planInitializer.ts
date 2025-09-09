@@ -31,18 +31,18 @@ export class PlanInitializerService {
         },
         {
           name: 'Basic',
-          price: 1500, // ₹15 in paise
+          price: 150000, // ₹1500
           interval: 'monthly',
-          razorpayPlanId: null, // Set this when creating Razorpay plans
+          razorpayPlanId: 'plan_RDbIVRSAFpTcnw', // Set this when creating Razorpay plans
           dailyPdfLimit: 30,
           monthlyPdfLimit: 200,
           maxFileSizeMb: 40,
         },
         {
           name: 'Pro',
-          price: 2500, // ₹25 in paise
+          price: 300000, // ₹3000
           interval: 'monthly',
-          razorpayPlanId: null, // Set this when creating Razorpay plans
+          razorpayPlanId: 'plan_RDbIW90gI68mAK', // Set this when creating Razorpay plans
           dailyPdfLimit: 200,
           monthlyPdfLimit: -1, // Unlimited
           maxFileSizeMb: 1024, // 1GB
@@ -50,8 +50,10 @@ export class PlanInitializerService {
       ]
 
       for (const planData of plans) {
-        let plan = await planRepository.findOne({ where: { name: planData.name } })
-        
+        let plan = await planRepository.findOne({
+          where: { name: planData.name },
+        })
+
         if (plan) {
           // Update existing plan with new limits
           await planRepository.update(
@@ -60,7 +62,7 @@ export class PlanInitializerService {
               dailyPdfLimit: planData.dailyPdfLimit,
               monthlyPdfLimit: planData.monthlyPdfLimit,
               maxFileSizeMb: planData.maxFileSizeMb,
-            }
+            },
           )
           logger.info(`Updated plan: ${planData.name}`)
         } else {
@@ -89,7 +91,7 @@ export class PlanInitializerService {
     try {
       const planRepository = dataSource.getRepository(Plan)
       const plan = await planRepository.findOne({ where: { name: planName } })
-      
+
       if (!plan) {
         return null
       }
@@ -108,7 +110,10 @@ export class PlanInitializerService {
   /**
    * Validate if a file size is within plan limits
    */
-  async validateFileSize(planName: string, fileSizeInMB: number): Promise<boolean> {
+  async validateFileSize(
+    planName: string,
+    fileSizeInMB: number,
+  ): Promise<boolean> {
     const limits = await this.getPlanLimits(planName)
     if (!limits) {
       return false
@@ -137,34 +142,40 @@ export class PlanInitializerService {
 
       // Get total users with this plan
       const totalUsers = await subscriptionRepository.count({
-        where: { plan: { id: plan.id } }
+        where: { plan: { id: plan.id } },
       })
 
       // Get active users
       const activeUsers = await subscriptionRepository.count({
-        where: { plan: { id: plan.id }, status: 'active' }
+        where: { plan: { id: plan.id }, status: 'active' },
       })
 
       // Get average usage (simplified calculation)
       const allUsage = await usageRepository.find({
-        relations: ['user']
+        relations: ['user'],
       })
 
       const planUsers = await subscriptionRepository.find({
         where: { plan: { id: plan.id }, status: 'active' },
-        relations: ['user']
+        relations: ['user'],
       })
 
       const planUserIds = planUsers.map(sub => sub.user.id)
-      const planUsage = allUsage.filter(usage => planUserIds.includes(usage.user.id))
+      const planUsage = allUsage.filter(usage =>
+        planUserIds.includes(usage.user.id),
+      )
 
-      const averageDailyUsage = planUsage.length > 0 
-        ? planUsage.reduce((sum, usage) => sum + usage.dailyCount, 0) / planUsage.length 
-        : 0
+      const averageDailyUsage =
+        planUsage.length > 0
+          ? planUsage.reduce((sum, usage) => sum + usage.dailyCount, 0) /
+            planUsage.length
+          : 0
 
-      const averageMonthlyUsage = planUsage.length > 0 
-        ? planUsage.reduce((sum, usage) => sum + usage.monthlyCount, 0) / planUsage.length 
-        : 0
+      const averageMonthlyUsage =
+        planUsage.length > 0
+          ? planUsage.reduce((sum, usage) => sum + usage.monthlyCount, 0) /
+            planUsage.length
+          : 0
 
       return {
         totalUsers,
